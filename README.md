@@ -1,2 +1,843 @@
-# MICOFFIE
-Mi Coffie
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>☕ My Offline Espresso Log V2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom styling for sort indicators */
+        .sortable {
+            cursor: pointer;
+            position: relative;
+        }
+        .sortable.asc:after { content: ' ▲'; font-size: 0.7em; }
+        .sortable.desc:after { content: ' ▼'; font-size: 0.7em; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-amber-50 to-orange-50 min-h-screen">
+
+<div id="app" class="p-4 md:p-6 lg:p-8">
+    </div>
+
+<script>
+    // -------------------------------------------------------------------------
+    // 1. INITIAL DATA (Used only if no data is found in localStorage)
+    // -------------------------------------------------------------------------
+
+    const initialCoffees = [
+        {
+            id: 1,
+            name: "Gamatui ⭐",
+            roaster: "Blueprint Coffee",
+            origin: "Uganda",
+            process: "Natural",
+            roast: "Light",
+            status: "frozen",
+            coffeeType: "wild",
+            roasterLink: "https://blueprintcoffee.com",
+            bgColor: "from-pink-400 to-pink-600",
+            notes: ["Strawberry", "Pomegranate", "Molasses"],
+            recipe: {
+                basket: "High Extraction",
+                dose: "17g",
+                yield: "43-45g",
+                ratio: "1:2.5-2.6",
+                temp: "94°C",
+                grind: "3",
+                bloom: "8 sec",
+                time: "25-32 sec"
+            },
+            shots: [
+                { date: "Oct 2024", dose: "17g", yield: "43g", time: "28s", temp: "94°C", grind: "3", notes: "Sweet, fruity, balanced - SUCCESS" }
+            ]
+        },
+        {
+            id: 2,
+            name: "1937",
+            roaster: "Kaldi’s Coffee",
+            origin: "Blend",
+            process: "Undisclosed",
+            roast: "Dark",
+            status: "active",
+            coffeeType: "bold",
+            roasterLink: "https://kaldiscoffee.com",
+            bgColor: "from-blue-700 to-blue-900",
+            notes: ["Dark Chocolate", "Caramel", "Nuts"],
+            recipe: {
+                basket: "Normal",
+                dose: "17g",
+                yield: "30-32g",
+                ratio: "1:1.76-1.88",
+                temp: "86°C",
+                grind: "5",
+                bloom: "3 sec",
+                time: "25-30 sec"
+            },
+            shots: [
+                { date: "Nov 2, 2025", dose: "17g", yield: "31g", time: "27s", temp: "86°C", grind: "5.5", notes: "Consistent. Made latte. LOCKED IN - stopping regular logging unless anomaly" },
+                { date: "Nov 2, 2025", dose: "17g", yield: "30.7g", time: "26s", temp: "86°C", grind: "5.5", notes: "Slowed down without changing grind. Good for milk" },
+                { date: "Nov 2, 2025", dose: "17g", yield: "31g", time: "23s", temp: "86°C", grind: "5.5", notes: "Went a bit too fast" },
+                { date: "Oct 30, 2025", dose: "17g", yield: "31.2g", time: "40s", temp: "86°C", grind: "4.5", notes: "Went FINER by mistake (brain fart!) - way too slow. Need to go coarser. Fine for milk" },
+                { date: "Oct 29, 2018", dose: "17g", yield: "31.5g", time: "35s", temp: "86°C", grind: "5", notes: "Adjusted grinder slightly finer. Still slow but fine for milk" },
+                { date: "Oct 28, 2025", dose: "17g", yield: "31.3g", time: "36s", temp: "86°C", grind: "5", notes: "Slower than usual. Possible grinder drift" }
+            ]
+        },
+        {
+            id: 3,
+            name: "Guatemala Huehuetenango",
+            roaster: "Home Roast",
+            origin: "Guatemala",
+            process: "Washed",
+            roast: "Medium-Dark",
+            status: "active",
+            coffeeType: "homeRoast",
+            roasterLink: null,
+            bgColor: "from-green-700 to-green-900",
+            notes: ["Balanced", "Chocolate", "Caramel"],
+            recipe: {
+                basket: "Normal",
+                dose: "18g",
+                yield: "36-48g",
+                ratio: "1:2-2.67",
+                temp: "86-88°C",
+                grind: "6-6.5",
+                bloom: "3 sec",
+                time: "25-28 sec"
+            },
+            shots: [
+                { date: "Oct 26, 2025", dose: "18g", yield: "36g", time: "28s", temp: "86°C", grind: "6", notes: "Slightly under-extracted, extra acidity - liked it!" },
+                { date: "Earlier", dose: "18g", yield: "48g", time: "25s", temp: "88°C", grind: "6.5", notes: "Balanced, great for milk" }
+            ]
+        },
+        {
+            id: 4,
+            name: "Biruhi",
+            roaster: "Goshen Coffee",
+            origin: "Ethiopia",
+            process: "Washed",
+            roast: "Light",
+            status: "dialing",
+            coffeeType: "wild",
+            roasterLink: "https://goshencoffee.com",
+            bgColor: "from-pink-400 to-pink-600",
+            notes: ["Lime", "Mango", "Floral"],
+            recipe: {
+                basket: "High Extraction",
+                dose: "18g",
+                yield: "45-48g",
+                ratio: "1:2.5-2.67",
+                temp: "95-97°C",
+                grind: "2.5-3",
+                bloom: "5-6 sec",
+                time: "25-30 sec"
+            },
+            shots: [
+                { date: "Oct 28, 2025", dose: "18g", yield: "56.4g", time: "25s", temp: "86°C", grind: "9", notes: "TURBO EXPERIMENT: Normal basket. Bright citrus/lime, clear but tame. No throat burn! Success" },
+                { date: "Earlier", dose: "18g", yield: "48g", time: "33s", temp: "95°C", grind: "3", notes: "Muted, not bright - UNDER-EXTRACTED. Try 97°C next" }
+            ]
+        },
+        {
+            id: 5,
+            name: "Wush Wush ⭐",
+            roaster: "PERC Coffee",
+            origin: "Ethiopia",
+            process: "120hr Anaerobic",
+            roast: "Light",
+            status: "dialing",
+            coffeeType: "wild",
+            roasterLink: "https://perccoffee.com/products/ethiopia-funky-wush-wush",
+            bgColor: "from-pink-400 to-pink-600",
+            notes: ["Watermelon", "Peach", "Boozy"],
+            recipe: {
+                basket: "HE or Normal",
+                dose: "17g",
+                yield: "43-53g",
+                ratio: "1:2.5-3.1",
+                temp: "88-93°C",
+                grind: "4 (HE) or 8-11 (Normal)",
+                bloom: "3-7 sec",
+                time: "23-37 sec"
+            },
+            shots: [
+                { date: "Nov 3, 2025", dose: "17g", yield: "53g", time: "37s", temp: "93°C", grind: "4", notes: "HE basket. Lungo style for Americano. Really sweet! Watermelon clear. NO throat burn! SUCCESS" },
+                { date: "Nov 2, 2025", dose: "17g", yield: "54g", time: "23s", temp: "92°C", grind: "11", notes: "TURBO attempt #2 - Normal basket. Totally different bean, not in good way. No notes at all, very dull. UNDER-EXTRACTED" },
+                { date: "Nov 1, 2025", dose: "17g", yield: "48.6g", time: "23s", temp: "88°C", grind: "9", notes: "TURBO attempt #1 - Normal basket. Watermelon present but muddy/unclear. Not as bright. NO throat burn!" },
+                { date: "Oct 27, 2025", dose: "17g", yield: "43.5g", time: "33s", temp: "93°C", grind: "4.5", notes: "Sweet start, watermelon candy, slight bitter finish. Cuts through milk!" },
+                { date: "Oct 26, 2025", dose: "17g", yield: "44.5g", time: "31s", temp: "93°C", grind: "4", notes: "Sweet and bright start, bitter aftertaste. Fruity, watermelon notes. Good body. Drinkable but room for improvement" }
+            ]
+        },
+        {
+            id: 6,
+            name: "Jhoan Vergara",
+            roaster: "PERC Coffee",
+            origin: "Colombia",
+            process: "Anaerobic + Thermal Shock",
+            roast: "Light-Medium",
+            status: "frozen",
+            coffeeType: "wild",
+            roasterLink: "https://perccoffee.com/products/colombia-jhoan-vergara",
+            bgColor: "from-pink-400 to-pink-600",
+            notes: ["Fruit Cocktail", "Agave", "Juicy"],
+            recipe: null,
+            shots: []
+        },
+        {
+            id: 7,
+            name: "Nagasire",
+            roaster: "Blueprint Coffee",
+            origin: "Uganda",
+            process: "Culture Washed",
+            roast: "Light-Medium",
+            status: "frozen",
+            coffeeType: "mellow",
+            roasterLink: "https://blueprintcoffee.com",
+            bgColor: "from-yellow-400 to-yellow-600",
+            notes: ["Chocolate", "Cherry", "Brown Sugar"],
+            recipe: null,
+            shots: []
+        },
+        {
+            id: 8,
+            name: "Finca Los Caballitos",
+            roaster: "Living Room Coffee",
+            origin: "Guatemala",
+            process: "Washed",
+            roast: "TBD",
+            status: "dialing",
+            coffeeType: "mellow",
+            roasterLink: "https://livingroomstl.com",
+            bgColor: "from-yellow-400 to-yellow-600",
+            notes: ["Apple", "Caramel", "Milk Chocolate"],
+            recipe: null,
+            shots: [
+                { date: "Nov 2, 2025", dose: "18g", yield: "43.4g", time: "18s", temp: "92°C", grind: "7", notes: "First attempt. WAY too fast. Very dull, weak, easy to drink. UNDER-EXTRACTED. Need grind 5-5.5" }
+            ]
+        },
+        {
+            id: 9,
+            name: "Breakfast Blend",
+            roaster: "Kaldi’s Coffee",
+            origin: "Blend (African + Latin American)",
+            process: "Undisclosed",
+            roast: "Light-Medium",
+            status: "active",
+            coffeeType: "mellow",
+            roasterLink: "https://kaldiscoffee.com",
+            bgColor: "from-yellow-400 to-yellow-600",
+            notes: ["Chocolate", "Citrus", "Milk Chocolate"],
+            recipe: {
+                basket: "Normal",
+                dose: "18g",
+                yield: "46-47g",
+                ratio: "1:2.55-2.6",
+                temp: "89-92°C",
+                grind: "8",
+                bloom: "3 sec",
+                time: "27-30 sec"
+            },
+            shots: [
+                { date: "Nov 1, 2025", dose: "18g", yield: "46.1g", time: "27s", temp: "89°C", grind: "8", notes: "Rushed for work. Roasty note seemed less/gone at lower temp. Need to confirm!" },
+                { date: "Oct 31, 2025", dose: "18g", yield: "46.5g", time: "27s", temp: "92°C", grind: "8", notes: "Acidity way up (bright, not sour). Roasty finish still there. Good in milk - brightness cuts through" },
+                { date: "Oct 31, 2025", dose: "18g", yield: "46.4g", time: "35s", temp: "92°C", grind: "7", notes: "First espresso attempt. Better than cupping. More bright/acidic. Roasty finish less pronounced. Good as Americano!" }
+            ]
+        }
+    ];
+
+    // -------------------------------------------------------------------------
+    // 2. STATE AND PERSISTENCE MANAGEMENT
+    // -------------------------------------------------------------------------
+    const STORAGE_KEY = 'coffeeLogData';
+    let coffees = [];
+    let selectedCoffee = null;
+    let view = 'library';
+    let sortState = { key: 'date', order: 'desc' }; // Default sort for shots
+
+    const app = document.getElementById('app');
+
+    function loadData() {
+        try {
+            const data = localStorage.getItem(STORAGE_KEY);
+            if (data) {
+                coffees = JSON.parse(data);
+                console.log("Data loaded from localStorage.");
+            } else {
+                // If no localStorage data, use the initial data and save it.
+                coffees = initialCoffees;
+                saveData();
+                console.log("Using initial data and saved to localStorage.");
+            }
+        } catch (e) {
+            console.error("Error loading data from localStorage:", e);
+            coffees = initialCoffees;
+        }
+    }
+
+    function saveData() {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(coffees));
+            console.log("Data saved to localStorage.");
+        } catch (e) {
+            console.error("Error saving data to localStorage. Storage might be full.", e);
+            alert("Warning: Could not save data to local storage. Your log is getting too big or your browser storage is full. Please Export Data now!");
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // 3. UTILITY FUNCTIONS (Including new Export/Import)
+    // -------------------------------------------------------------------------
+
+    // Simple Lucide icon mapper
+    const icon = (name, classes) => {
+        const icons = {
+            Coffee: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2c2.2 0 4 1.8 4 4v4h-4v-4c0-2.2 1.8-4 4-4Z"/><path d="M16 11H8V6c0-2.2 1.8-4 4-4s4 1.8 4 4v5Z"/><path d="M12 18H8c-2.2 0-4-1.8-4-4v-1h16v1c0 2.2-1.8 4-4 4Z"/><path d="M12 21h-4c-1.1 0-2-.9-2-2"/></svg>',
+            ChevronLeft: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
+            Droplet: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69L5.64 8.79C2.7 11.53 2.7 16.03 5.64 18.77C7.38 20.44 9.69 21.31 12 21.31C14.31 21.31 16.62 20.44 18.36 18.77C21.3 16.03 21.3 11.53 18.36 8.79L12 2.69Z"/></svg>',
+            Thermometer: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4.1a.5.5 0 0 0-.8-.1L9 11l-3 3.5a1 1 0 0 0 .5 1.5l3.4.4v3a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5v-3l3.4-.4a1 1 0 0 0 .5-1.5L15.8 11l3.2-6.9a.5.5 0 0 0-.2-.8Z"/></svg>',
+            Clock: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
+            Target: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+            Download: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
+            Upload: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>',
+        };
+        return `<span class="${classes}">${icons[name] || ''}</span>`;
+    };
+
+    const getCoffeeTypeLabel = (type) => { /* ... (Same as before) ... */
+        switch(type) {
+            case 'wild': return '🌸 WILD & FUNKY';
+            case 'mellow': return '☀️ MELLOW & BALANCED';
+            case 'bold': return '💪 BOLD & RICH';
+            case 'homeRoast': return '🏡 HOME ROAST';
+            default: return '';
+        }
+    };
+
+    const getCoffeeTypeColor = (type) => { /* ... (Same as before) ... */
+        switch(type) {
+            case 'wild': return 'bg-pink-100 text-pink-800 border-pink-300';
+            case 'mellow': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+            case 'bold': return 'bg-blue-100 text-blue-800 border-blue-300';
+            case 'homeRoast': return 'bg-green-100 text-green-800 border-green-300';
+            default: return 'bg-gray-100 text-gray-600 border-gray-300';
+        }
+    };
+
+    const getStatusColor = (status) => { /* ... (Same as before) ... */
+        switch(status) {
+            case 'active': return 'bg-green-100 text-green-800 border-green-300';
+            case 'dialing': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+            case 'resting': return 'bg-blue-100 text-blue-800 border-blue-300';
+            case 'frozen': return 'bg-purple-100 text-purple-800 border-purple-300';
+            case 'finished': return 'bg-gray-100 text-gray-600 border-gray-300';
+            default: return 'bg-gray-100 text-gray-600 border-gray-300';
+        }
+    };
+
+    const getStatusLabel = (status) => {
+        return status.charAt(0).toUpperCase() + status.slice(1);
+    };
+
+    const calculateRatio = (dose, yieldVal) => {
+        const d = parseFloat(dose);
+        const y = parseFloat(yieldVal);
+        if (isNaN(d) || isNaN(y) || d === 0) return 'N/A';
+        return `1:${(y / d).toFixed(2)}`;
+    };
+
+    const getCurrentDate = () => {
+        const options = { year: 'numeric', month: 'short', day: 'numeric' };
+        return new Date().toLocaleDateString(undefined, options);
+    }
+
+    // New: Export Data Function
+    window.exportData = function() {
+        const dataStr = JSON.stringify(coffees, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+
+        const exportFileDefaultName = `espresso_log_backup_${new Date().toISOString().slice(0, 10)}.json`;
+
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportFileDefaultName);
+        linkElement.click();
+
+        alert("Data Exported! Save the JSON file in a safe place.");
+    };
+
+    // New: Import Data Function
+    window.importData = function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                if (confirm("Are you sure you want to replace your current log with the imported data? This action cannot be undone.")) {
+                    // Update the coffees state and local storage
+                    coffees = importedData.map(coffee => ({
+                        ...coffee,
+                        // Ensure IDs are unique and re-assigned if needed, or simply trust the imported IDs
+                        id: coffee.id || Date.now() + Math.random(), 
+                    }));
+                    saveData();
+                    showLibrary(); // Re-render the app
+                    alert("Data Imported Successfully!");
+                }
+            } catch (error) {
+                alert("Error importing file. Please ensure it is a valid JSON file exported from this app.");
+                console.error("Import Error:", error);
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    // -------------------------------------------------------------------------
+    // 4. VIEW FUNCTIONS (Library and Detail)
+    // -------------------------------------------------------------------------
+
+    function LibraryView() {
+        return `
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center mb-6 md:mb-8">
+                    <div class="flex items-center justify-center gap-3 mb-2">
+                        ${icon('Coffee', 'w-10 h-10 md:w-12 md:h-12 text-amber-700')}
+                        <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-amber-900">My Coffee Library</h1>
+                    </div>
+                    <p class="text-lg md:text-xl text-amber-700">Tap any coffee to see details & shot history</p>
+                </div>
+                
+                <div class="flex flex-wrap justify-center gap-4 mb-8">
+                    <button 
+                        onclick="exportData()"
+                        class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md"
+                    >
+                        ${icon('Download', 'w-5 h-5')} Export/Backup Data
+                    </button>
+                    <label class="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-colors cursor-pointer shadow-md">
+                        ${icon('Upload', 'w-5 h-5')} Import Data
+                        <input type="file" id="importFile" accept=".json" onchange="importData(event)" class="hidden">
+                    </label>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+                    ${coffees.map(coffee => `
+                        <div
+                            data-id="${coffee.id}"
+                            onclick="showDetail(${coffee.id})"
+                            class="bg-white rounded-2xl shadow-lg overflow-hidden cursor-pointer transform transition-all hover:scale-105 active:scale-95"
+                        >
+                            <div class="relative h-40 bg-gradient-to-br ${coffee.bgColor} flex items-center justify-center">
+                                ${icon('Coffee', 'w-20 h-20 text-white opacity-30')}
+                                <div class="absolute top-3 left-3">
+                                    <span class="px-3 py-1 rounded-full text-xs font-bold border-2 ${getCoffeeTypeColor(coffee.coffeeType)}">
+                                        ${getCoffeeTypeLabel(coffee.coffeeType)}
+                                    </span>
+                                </div>
+                                <div class="absolute top-3 right-3">
+                                    <span class="px-3 py-1 rounded-full text-xs font-semibold border-2 ${getStatusColor(coffee.status)}">
+                                        ${getStatusLabel(coffee.status)}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="p-4">
+                                <h2 class="text-xl font-bold text-gray-900 mb-1">${coffee.name}</h2>
+                                <p class="text-base text-amber-700 font-semibold mb-1">${coffee.roaster}</p>
+                                <p class="text-sm text-gray-600 mb-3">${coffee.origin} • ${coffee.process}</p>
+                                
+                                ${coffee.roasterLink ? `
+                                    <a 
+                                        href="${coffee.roasterLink}" 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        class="inline-block bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2 px-4 rounded-lg text-sm mb-3 transition-colors"
+                                        onclick="event.stopPropagation()"
+                                    >
+                                        View Roaster Page ↗
+                                    </a>
+                                ` : ''}
+                                
+                                <div class="flex flex-wrap gap-1.5 mb-3">
+                                    ${coffee.notes.slice(0, 3).map(note => `
+                                        <span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                                            ${note}
+                                        </span>
+                                    `).join('')}
+                                </div>
+                                
+                                <div class="text-xs text-gray-500 font-medium">
+                                    ${coffee.shots.length} shot${coffee.shots.length !== 1 ? 's' : ''} logged
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    function DetailView(coffee) {
+        if (!coffee) return '';
+        
+        const recipeHtml = coffee.recipe ? `
+            <div class="bg-white rounded-2xl shadow-lg p-5 md:p-6 mb-4 md:mb-6">
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-6 flex items-center gap-2">
+                    ${icon('Coffee', 'w-7 h-7 md:w-8 md:h-8 text-amber-700')}
+                    Current Recipe
+                </h2>
+                
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+                    <div class="bg-amber-50 rounded-xl p-3 md:p-4">
+                        <div class="text-xs text-gray-600 mb-1">Basket</div>
+                        <div class="text-base md:text-lg font-bold text-gray-900">${coffee.recipe.basket}</div>
+                    </div>
+                    
+                    <div class="bg-amber-50 rounded-xl p-3 md:p-4">
+                        <div class="text-xs text-gray-600 mb-1 flex items-center gap-1">
+                            ${icon('Droplet', 'w-3 h-3')}
+                            Dose → Yield
+                        </div>
+                        <div class="text-base md:text-lg font-bold text-gray-900">${coffee.recipe.dose} → ${coffee.recipe.yield}</div>
+                        <div class="text-xs text-amber-700">${coffee.recipe.ratio}</div>
+                    </div>
+                    
+                    <div class="bg-amber-50 rounded-xl p-3 md:p-4">
+                        <div class="text-xs text-gray-600 mb-1 flex items-center gap-1">
+                            ${icon('Thermometer', 'w-3 h-3')}
+                            Temp
+                        </div>
+                        <div class="text-base md:text-lg font-bold text-gray-900">${coffee.recipe.temp}</div>
+                    </div>
+                    
+                    <div class="bg-amber-50 rounded-xl p-3 md:p-4">
+                        <div class="text-xs text-gray-600 mb-1 flex items-center gap-1">
+                            ${icon('Target', 'w-3 h-3')}
+                            Grind
+                        </div>
+                        <div class="text-base md:text-lg font-bold text-gray-900">${coffee.recipe.grind}</div>
+                    </div>
+                    
+                    <div class="bg-amber-50 rounded-xl p-3 md:p-4">
+                        <div class="text-xs text-gray-600 mb-1 flex items-center gap-1">
+                            ${icon('Clock', 'w-3 h-3')}
+                            Bloom
+                        </div>
+                        <div class="text-base md:text-lg font-bold text-gray-900">${coffee.recipe.bloom}</div>
+                    </div>
+                    
+                    <div class="bg-amber-50 rounded-xl p-3 md:p-4">
+                        <div class="text-xs text-gray-600 mb-1 flex items-center gap-1">
+                            ${icon('Clock', 'w-3 h-3')}
+                            Time (Target)
+                        </div>
+                        <div class="text-base md:text-lg font-bold text-gray-900">${coffee.recipe.time}</div>
+                    </div>
+                </div>
+            </div>
+        ` : '';
+
+        const newShotForm = `
+            <div class="bg-white rounded-2xl shadow-lg p-5 md:p-6 mb-4 md:mb-6 border-l-4 border-amber-600">
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    ${icon('Droplet', 'w-7 h-7 md:w-8 md:h-8 text-amber-700')}
+                    Log a New Shot (Dial-In)
+                </h2>
+                <form id="shot-form" onsubmit="logNewShot(event, ${coffee.id})">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-4">
+                        
+                        <div>
+                            <label for="dose" class="block text-sm font-medium text-gray-700 mb-1">Dose (g)</label>
+                            <input type="number" id="dose" name="dose" step="0.1" required 
+                                oninput="updateRatioDisplay()"
+                                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500" 
+                                value="${coffee.recipe ? parseFloat(coffee.recipe.dose) : ''}"
+                            >
+                        </div>
+
+                        <div>
+                            <label for="yield" class="block text-sm font-medium text-gray-700 mb-1">Yield (g)</label>
+                            <input type="number" id="yield" name="yield" step="0.1" required 
+                                oninput="updateRatioDisplay()"
+                                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500"
+                            >
+                        </div>
+
+                        <div class="col-span-2 lg:col-span-1 flex items-end">
+                            <div class="bg-amber-100 rounded-lg p-2 w-full">
+                                <div class="text-xs text-amber-700 mb-1">Ratio (Live)</div>
+                                <div id="ratio-display" class="text-lg font-bold text-amber-900">N/A</div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="time" class="block text-sm font-medium text-gray-700 mb-1">Time (s)</label>
+                            <input type="number" id="time" name="time" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500">
+                        </div>
+
+                        <div>
+                            <label for="temp" class="block text-sm font-medium text-gray-700 mb-1">Temp (°C)</label>
+                            <input type="text" id="temp" name="temp" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500" value="${coffee.recipe ? coffee.recipe.temp : ''}">
+                        </div>
+
+                        <div>
+                            <label for="grind" class="block text-sm font-medium text-gray-700 mb-1">Grind Setting</label>
+                            <input type="text" id="grind" name="grind" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500" value="${coffee.recipe ? coffee.recipe.grind : ''}">
+                        </div>
+
+                        <input type="hidden" name="date" value="${getCurrentDate()}">
+
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Notes / Taste Assessment</label>
+                        <textarea id="notes" name="notes" rows="2" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500" placeholder="e.g., Sour, needs finer grind. Sweet and balanced."></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-6 rounded-lg transition-colors shadow-md">
+                        Add Shot Log
+                    </button>
+                    <p id="form-message" class="mt-3 text-sm font-semibold"></p>
+                </form>
+            </div>
+        `;
+        
+        // Apply sorting to the shots array
+        const sortedShots = [...coffee.shots].sort(getShotComparator(sortState.key, sortState.order));
+
+        const shotHistoryHtml = coffee.shots.length > 0 ? `
+            <div class="bg-white rounded-2xl shadow-lg p-5 md:p-6">
+                <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-4">Shot History</h2>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b-2 border-amber-200">
+                                <th class="text-left py-3 px-2 text-gray-600 font-semibold sortable ${sortState.key === 'date' ? sortState.order : ''}" onclick="setSort('date')">Date</th>
+                                <th class="text-left py-3 px-2 text-gray-600 font-semibold sortable ${sortState.key === 'dose' ? sortState.order : ''}" onclick="setSort('dose')">Dose</th>
+                                <th class="text-left py-3 px-2 text-gray-600 font-semibold sortable ${sortState.key === 'yield' ? sortState.order : ''}" onclick="setSort('yield')">Yield</th>
+                                <th class="text-left py-3 px-2 text-gray-600 font-semibold sortable ${sortState.key === 'time' ? sortState.order : ''}" onclick="setSort('time')">Time</th>
+                                <th class="text-left py-3 px-2 text-gray-600 font-semibold">Ratio</th>
+                                <th class="text-left py-3 px-2 text-gray-600 font-semibold">Grind</th>
+                                <th class="text-left py-3 px-2 text-gray-600 font-semibold">Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${sortedShots.map(shot => `
+                                <tr class="border-b border-amber-100 hover:bg-amber-50">
+                                    <td class="py-3 px-2 text-amber-700 font-medium whitespace-nowrap">${shot.date}</td>
+                                    <td class="py-3 px-2 text-gray-900 whitespace-nowrap">${shot.dose}</td>
+                                    <td class="py-3 px-2 text-gray-900 whitespace-nowrap">${shot.yield}</td>
+                                    <td class="py-3 px-2 text-gray-900 whitespace-nowrap">${shot.time}</td>
+                                    <td class="py-3 px-2 text-amber-800 font-semibold whitespace-nowrap">${calculateRatio(shot.dose.replace('g', ''), shot.yield.replace('g', ''))}</td>
+                                    <td class="py-3 px-2 text-gray-900 whitespace-nowrap">${shot.grind || '-'}</td>
+                                    <td class="py-3 px-2 text-gray-700 italic text-xs max-w-xs">${shot.notes}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        ` : `
+            <div class="bg-white rounded-2xl shadow-lg p-8 text-center">
+                ${icon('Coffee', 'w-16 h-16 text-gray-300 mx-auto mb-4')}
+                <p class="text-xl text-gray-500">No shots logged yet for this coffee</p>
+                <p class="text-base text-gray-400 mt-2">Start brewing and log your first pull!</p>
+            </div>
+        `;
+
+        return `
+            <div class="max-w-6xl mx-auto">
+                <button
+                    onclick="showLibrary()"
+                    class="flex items-center gap-2 text-amber-700 text-lg md:text-xl font-semibold mb-4 md:mb-6 hover:text-amber-900 active:scale-95 transition-all"
+                >
+                    ${icon('ChevronLeft', 'w-7 h-7 md:w-8 md:h-8')}
+                    Back to Library
+                </button>
+
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-4 md:mb-6">
+                    <div class="relative h-48 md:h-56 bg-gradient-to-br ${coffee.bgColor} flex items-center justify-center">
+                        ${icon('Coffee', 'w-32 h-32 md:w-40 md:h-40 text-white opacity-30')}
+                        <div class="absolute top-4 left-4">
+                            <span class="px-4 py-2 rounded-full text-sm md:text-base font-bold border-2 ${getCoffeeTypeColor(coffee.coffeeType)}">
+                                ${getCoffeeTypeLabel(coffee.coffeeType)}
+                            </span>
+                        </div>
+                        <div class="absolute top-4 right-4">
+                            <span class="px-4 py-2 rounded-full text-sm md:text-base font-semibold border-2 ${getStatusColor(coffee.status)}">
+                                ${getStatusLabel(coffee.status)}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="p-5 md:p-6">
+                        <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">${coffee.name}</h1>
+                        <p class="text-lg md:text-xl text-amber-700 font-semibold mb-2">${coffee.roaster}</p>
+                        
+                        ${coffee.roasterLink ? `
+                            <a 
+                                href="${coffee.roasterLink}" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                class="inline-block bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-6 rounded-lg text-base mb-4 transition-colors"
+                            >
+                                View Roaster Page ↗
+                            </a>
+                        ` : ''}
+                        
+                        <div class="flex flex-wrap gap-3 md:gap-4 text-base md:text-lg text-gray-600 mb-4">
+                            <span>${coffee.origin}</span>
+                            <span>•</span>
+                            <span>${coffee.process}</span>
+                            <span>•</span>
+                            <span>${coffee.roast} Roast</span>
+                        </div>
+                        
+                        <div class="flex flex-wrap gap-2">
+                            ${coffee.notes.map(note => `
+                                <span class="bg-amber-100 text-amber-800 px-3 md:px-4 py-1.5 md:py-2 rounded-full text-sm md:text-base font-medium">
+                                    ${note}
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                ${recipeHtml}
+                ${newShotForm}
+                ${shotHistoryHtml}
+
+            </div>
+        `;
+    }
+
+    // -------------------------------------------------------------------------
+    // 5. SORTING AND STATE MANAGEMENT
+    // -------------------------------------------------------------------------
+
+    // Utility for shot sorting
+    function getShotValue(shot, key) {
+        const value = shot[key] || '';
+        if (key === 'time' || key === 'dose' || key === 'yield') {
+            return parseFloat(value.replace(/g|s/g, '')) || 0;
+        }
+        return value;
+    }
+
+    function getShotComparator(key, order) {
+        return (a, b) => {
+            const valA = getShotValue(a, key);
+            const valB = getShotValue(b, key);
+
+            if (valA < valB) return order === 'asc' ? -1 : 1;
+            if (valA > valB) return order === 'asc' ? 1 : -1;
+            return 0;
+        };
+    }
+
+    window.setSort = function(key) {
+        if (sortState.key === key) {
+            sortState.order = sortState.order === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortState.key = key;
+            sortState.order = 'desc'; // Default to descending for new sort key
+        }
+        // Re-render to display sorted list
+        render();
+    };
+
+
+    // -------------------------------------------------------------------------
+    // 6. MAIN RENDERING AND EVENT HANDLERS
+    // -------------------------------------------------------------------------
+
+    function render() {
+        if (view === 'library') {
+            app.innerHTML = LibraryView();
+        } else if (view === 'detail' && selectedCoffee) {
+            app.innerHTML = DetailView(selectedCoffee);
+            // Ensure the ratio display updates if the form loads with prepopulated values
+            window.updateRatioDisplay(); 
+        }
+    }
+
+    window.showLibrary = function() {
+        view = 'library';
+        selectedCoffee = null;
+        render();
+    };
+
+    window.showDetail = function(coffeeId) {
+        selectedCoffee = coffees.find(c => c.id === coffeeId);
+        view = 'detail';
+        render();
+    };
+
+    window.updateRatioDisplay = function() {
+        const doseInput = document.getElementById('dose');
+        const yieldInput = document.getElementById('yield');
+        const ratioDisplay = document.getElementById('ratio-display');
+        
+        if (doseInput && yieldInput && ratioDisplay) {
+            const dose = doseInput.value;
+            const yieldVal = yieldInput.value;
+            ratioDisplay.textContent = calculateRatio(dose, yieldVal);
+        }
+    }
+
+    window.logNewShot = function(event, coffeeId) {
+        event.preventDefault();
+        const form = event.target;
+        const formMessage = document.getElementById('form-message');
+
+        const shotData = {
+            date: form.date.value,
+            dose: `${form.dose.value}g`,
+            yield: `${form.yield.value}g`,
+            time: `${form.time.value}s`,
+            temp: form.temp.value,
+            grind: form.grind.value,
+            notes: form.notes.value
+        };
+
+        const coffee = coffees.find(c => c.id === coffeeId);
+        if (coffee) {
+            coffee.shots.unshift(shotData); // Add to the top
+            
+            // 1. Save Data to localStorage
+            saveData(); 
+
+            // 2. Re-render the detail view to update the history table
+            selectedCoffee = coffee;
+            render();
+
+            formMessage.className = 'mt-3 text-sm font-semibold text-green-700';
+            formMessage.textContent = `Shot Logged! Ratio: ${calculateRatio(shotData.dose.replace('g', ''), shotData.yield.replace('g', ''))}`;
+            
+            // Clear shot-specific fields
+            form.yield.value = '';
+            form.time.value = '';
+            form.notes.value = '';
+            window.updateRatioDisplay(); // Clear ratio display
+
+        } else {
+            formMessage.className = 'mt-3 text-sm font-semibold text-red-700';
+            formMessage.textContent = 'Error: Could not find coffee to log shot.';
+        }
+    };
+
+    // Initial load and render
+    document.addEventListener('DOMContentLoaded', () => {
+        loadData();
+        render();
+    });
+</script>
+
+</body>
+</html>
